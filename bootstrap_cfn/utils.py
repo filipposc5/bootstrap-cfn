@@ -9,6 +9,7 @@ import boto.sts
 
 import bootstrap_cfn.errors as errors
 
+import boto3
 
 def timeout(timeout, interval):
     def decorate(func):
@@ -29,30 +30,39 @@ def timeout(timeout, interval):
 def connect_to_aws(module, instance):
     try:
         if instance.aws_profile_name == 'cross-account':
-            sts = boto.sts.connect_to_region(
-                region_name=instance.aws_region_name,
-                profile_name=instance.aws_profile_name
+            client = boto3.client('sts')
+            # sts = boto.sts.connect_to_region(
+            #     region_name=instance.aws_region_name,
+            #     profile_name=instance.aws_profile_name
+            # )
+            role = client.assume_role(
+                RoleArn=os.environ['AWS_ROLE_ARN_ID'],
+                RoleSessionName="AssumeRoleSession1"
             )
-            role = sts.assume_role(
-                role_arn=os.environ['AWS_ROLE_ARN_ID'],
-                role_session_name="AssumeRoleSession1"
-            )
-            conn = module.connect_to_region(
-                region_name=instance.aws_region_name,
-                aws_access_key_id=role.credentials.access_key,
-                aws_secret_access_key=role.credentials.secret_key,
-                security_token=role.credentials.session_token
-            )
+            # role = sts.assume_role(
+            #     role_arn=os.environ['AWS_ROLE_ARN_ID'],
+            #     role_session_name="AssumeRoleSession1"
+            # )
+            conn = module
+            # conn = module.connect_to_region(
+            #     region_name=instance.aws_region_name,
+            #     aws_access_key_id=role.credentials.access_key,
+            #     aws_secret_access_key=role.credentials.secret_key,
+            #     security_token=role.credentials.session_token
+            # )
             return conn
-        conn = module.connect_to_region(
-            region_name=instance.aws_region_name,
-            profile_name=instance.aws_profile_name
-        )
+        conn = module
+        # conn = module.connect_to_region(
+        #     region_name=instance.aws_region_name,
+        #     profile_name=instance.aws_profile_name
+        # )
         return conn
-    except boto.exception.NoAuthHandlerFound:
-        raise errors.NoCredentialsError()
-    except boto.provider.ProfileNotFoundError as e:
-        raise errors.ProfileNotFoundError(instance.aws_profile_name)
+    except Exception, e:
+        print e
+    # except boto.exception.NoAuthHandlerFound:
+    #     raise errors.NoCredentialsError()
+    # except boto.provider.ProfileNotFoundError as e:
+    #     raise errors.ProfileNotFoundError(instance.aws_profile_name)
 
 
 def dict_merge(target, *args):

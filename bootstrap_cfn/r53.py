@@ -2,6 +2,8 @@ import boto.route53
 
 from bootstrap_cfn import utils
 
+import boto3
+import sys
 
 class R53:
 
@@ -13,17 +15,30 @@ class R53:
         self.aws_profile_name = aws_profile_name
         self.aws_region_name = aws_region_name
 
-        self.conn_r53 = utils.connect_to_aws(boto.route53, self)
+        self.conn_r53 = utils.connect_to_aws(boto3.client('route53'), self)
 
     def get_hosted_zone_id(self, zone_name):
         '''
         Take a zone name
         Return a zone id or None if no zone found
         '''
-        zone = self.conn_r53.get_hosted_zone_by_name(zone_name)
-        if zone:
-            zone = zone['GetHostedZoneResponse']['HostedZone']['Id']
-            return zone.replace('/hostedzone/', '')
+        print "DEBUG: zone_name %s" % str(zone_name)
+        zone = self.conn_r53.list_hosted_zones_by_name(DNSName=zone_name)
+        if len(zone['HostedZones']) == 0:
+            print "ERROR NO VALUES RETURNED"
+            sys.exit(1)
+        print "DEBUG zone_name from R53: %s" % zone['HostedZones'][0]['Name']
+        if zone['HostedZones'][0]['Name'] == zone_name + '.':
+            # we found what we were looking for
+            print "DEBUG FOUND %s Id: %s" % (zone_name, zone['HostedZones'][0]['Id'])
+            sys.exit(1)
+        else:
+            print "ERROR: zone %s not found in R53" % zone_name
+            sys.exit(1)
+        # zone = self.conn_r53.get_hosted_zone_by_name(zone_name)
+        # if zone:
+        #     zone = zone['GetHostedZoneResponse']['HostedZone']['Id']
+        #     return zone.replace('/hostedzone/', '')
 
     def update_dns_record(self, zone, record, record_type, record_value):
         '''

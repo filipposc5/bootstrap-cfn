@@ -17,7 +17,7 @@ class IAM:
         self.aws_profile_name = aws_profile_name
         self.aws_region_name = aws_region_name
 
-        self.conn_iam = utils.connect_to_aws(boto.iam, self)
+        self.conn_iam = utils.connect_to_aws(boto3.client('iam'), self)
 
     def upload_ssl_certificate(self, ssl_config, stack_name):
         for cert_name, ssl_data in ssl_config.items():

@@ -5,6 +5,7 @@ import boto.ec2.elb
 from bootstrap_cfn import cloudformation, iam, utils
 from bootstrap_cfn.errors import BootstrapCfnError, CloudResourceNotFoundError
 
+import boto3
 
 class ELB:
 
@@ -17,7 +18,7 @@ class ELB:
         self.aws_profile_name = aws_profile_name
         self.aws_region_name = aws_region_name
 
-        self.conn_elb = utils.connect_to_aws(boto.ec2.elb, self)
+        self.conn_elb = utils.connect_to_aws(boto3.client('elb'), self)
 
         self.iam = iam.IAM(aws_profile_name, aws_region_name)
         self.cfn = cloudformation.Cloudformation(

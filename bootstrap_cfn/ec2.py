@@ -3,6 +3,7 @@ import boto.ec2
 from bootstrap_cfn import cloudformation
 from bootstrap_cfn import utils
 
+import boto3
 
 class EC2:
 
@@ -14,7 +15,7 @@ class EC2:
         self.aws_profile_name = aws_profile_name
         self.aws_region_name = aws_region_name
 
-        self.conn_ec2 = utils.connect_to_aws(boto.ec2, self)
+        self.conn_ec2 = utils.connect_to_aws(boto3.client('ec2'), self)
 
         self.cfn = cloudformation.Cloudformation(
             aws_profile_name=aws_profile_name,

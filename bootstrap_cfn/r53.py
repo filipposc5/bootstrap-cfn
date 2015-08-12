@@ -15,25 +15,28 @@ class R53:
         self.aws_profile_name = aws_profile_name
         self.aws_region_name = aws_region_name
 
-        self.conn_r53 = utils.connect_to_aws(boto3.client('route53'), self)
+        self.conn_r53 = utils.connect_to_aws('route53', self)
 
     def get_hosted_zone_id(self, zone_name):
         '''
         Take a zone name
         Return a zone id or None if no zone found
         '''
-        print "DEBUG: zone_name %s" % str(zone_name)
         zone = self.conn_r53.list_hosted_zones_by_name(DNSName=zone_name)
         if len(zone['HostedZones']) == 0:
             print "ERROR NO VALUES RETURNED"
+            # TODO: handle this exception appropriately
             sys.exit(1)
+
         print "DEBUG zone_name from R53: %s" % zone['HostedZones'][0]['Name']
         if zone['HostedZones'][0]['Name'] == zone_name + '.':
             # we found what we were looking for
             print "DEBUG FOUND %s Id: %s" % (zone_name, zone['HostedZones'][0]['Id'])
-            sys.exit(1)
+            print "DEBUG we are sending back %s" % zone['HostedZones'][0]['Id']
+            return (zone['HostedZones'][0]['Id'])
         else:
             print "ERROR: zone %s not found in R53" % zone_name
+            # TODO: handle this better
             sys.exit(1)
         # zone = self.conn_r53.get_hosted_zone_by_name(zone_name)
         # if zone:

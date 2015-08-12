@@ -2,7 +2,6 @@ import boto.ec2.autoscale
 
 from bootstrap_cfn import utils
 
-import boto3
 
 class Autoscale:
 
@@ -10,7 +9,7 @@ class Autoscale:
         self.group = None
         self.aws_profile_name = aws_profile_name
         self.aws_region_name = aws_region_name
-        self.conn_asg = utils.connect_to_aws(boto3.client('ec2'), self)
+        self.conn_asg = utils.connect_to_aws(boto.ec2.autoscale, self)
 
     def set_autoscaling_group(self, name):
         for grp in self.conn_asg.get_all_groups():

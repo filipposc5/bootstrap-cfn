@@ -1,8 +1,8 @@
-# import boto.cloudformation
-# import boto.ec2
+import boto.cloudformation
+import boto.ec2
+
 from bootstrap_cfn import utils
 
-import boto3
 
 class Cloudformation:
 
@@ -13,7 +13,7 @@ class Cloudformation:
     def __init__(self, aws_profile_name, aws_region_name='eu-west-1'):
         self.aws_profile_name = aws_profile_name
         self.aws_region_name = aws_region_name
-        self.conn_cfn = utils.connect_to_aws(boto3.client('cloudformation'), self)
+        self.conn_cfn = utils.connect_to_aws(boto.cloudformation, self)
 
     def create(self, stack_name, template_body, tags):
         stack = self.conn_cfn.create_stack(stack_name=stack_name,

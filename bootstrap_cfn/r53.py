@@ -47,10 +47,40 @@ class R53:
         '''
         Returns True if update successful or raises an exception if not
         '''
-        changes = boto.route53.record.ResourceRecordSets(self.conn_r53, zone)
-        change = changes.add_change("UPSERT", record, record_type, ttl=60)
-        change.add_value(record_value)
-        changes.commit()
+        
+        print "DEBUG inside update_dns_record"
+        print "zone: " + str(zone)
+        print "record: " + str(record)
+        print "record_type: " + str(record_type)
+        print "record_value: " + str(record_value)
+        
+        changes = self.conn_r53.change_resource_record_sets(
+            HostedZoneId=zone,
+            ChangeBatch={
+                'Comment': 'some comment',
+                'Changes': [
+                    {
+                        'Action': 'UPSERT',
+                        'ResourceRecordSet': {
+                            'Name': record,
+                            'Type': record_type,
+                            'TTL': 60,
+                            'ResourceRecords': [
+                                {
+                                    'Value': record_value
+                                },
+                            ],
+                        }
+                    },
+                ]
+            }
+        )
+
+        #
+        # changes = boto.route53.record.ResourceRecordSets(self.conn_r53, zone)
+        # change = changes.add_change("UPSERT", record, record_type, ttl=60)
+        # change.add_value(record_value)
+        # changes.commit()
         return True
 
     def get_record(self, zone, zone_id, record, record_type):

@@ -1,4 +1,6 @@
 import os
+import random
+import string
 import sys
 import time
 
@@ -151,3 +153,25 @@ def sleep_countdown(sleep_time):
         sys.stdout.flush()
         time.sleep(1)
         sleep_time -= 1
+
+
+def get_random_string(length=64, alphanumeric=False):
+    """
+    Return a basic pseudo-random string
+
+    Args:
+        length(int): The length of the string to return
+        alphanumeric(bool): True to use only alphanumeric chars,
+            False to use all chars
+
+    Returns:
+        random_string(string): The random string of required length
+    """
+    # Just alphanumeric characters
+    if alphanumeric:
+        chars = string.letters + string.digits
+    else:
+        # Alphanumeric + special characters
+        chars = string.letters + string.digits + string.punctuation
+    random_string = ''.join([random.choice(chars) for x in range(length)])
+    return random_string

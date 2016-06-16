@@ -481,12 +481,12 @@ class ConfigParser(object):
         """
         # REQUIRED FIELDS MAPPING
         required_fields = {
-            'db-name': 'DBName',
-            'db-master-username': 'MasterUsername',
-            'db-master-password': 'MasterUserPassword',
         }
 
         optional_fields = {
+            'db-name': 'DBName',
+            'db-master-username': 'MasterUsername',
+            'db-master-password': 'MasterUserPassword',
             'storage': 'AllocatedStorage',
             'storage-type': 'StorageType',
             'backup-retention-period': 'BackupRetentionPeriod',
@@ -497,6 +497,30 @@ class ConfigParser(object):
             'storage-encrypted': 'StorageEncrypted',
             'identifier': 'DBInstanceIdentifier'
         }
+
+        # Do random generation of RDS vars,
+        # See http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html
+        # for limitation details
+        if 'identifier' not in self.data['rds']:
+            logging.info("config::rds: No RDS identifier found, generating random value...")
+            # Identifier can use stack name, we add another random string to allow for the
+            # possibility of multiple RDS instances within a stack
+            identifier = ('%s-%s'
+                          % (self.stack_name,
+                             utils.get_random_string(length=16, alphanumeric=True)))
+            # Truncate to meet requirements
+            self.data['rds']['identifier'] = identifier[:63]
+        if 'db-name' not in self.data['rds']:
+            logging.info("config::rds: No RDS database name found, generating random value...")
+            self.data['rds']['db-name'] = ('%s_%s'
+                                           % (self.application,
+                                              utils.get_random_string(length=12, alphanumeric=True)))
+        if 'db-master-username' not in self.data['rds']:
+            logging.info("config::rds: No RDS database username found, generating random value...")
+            self.data['rds']['db-master-username'] = utils.get_random_string(length=63, alphanumeric=True)
+        if 'db-master-password' not in self.data['rds']:
+            logging.info("config::rds: No RDS database password found, generating random value...")
+            self.data['rds']['db-master-password'] = utils.get_random_string(length=128, alphanumeric=True)
 
         # LOAD STACK TEMPLATE
         resources = []

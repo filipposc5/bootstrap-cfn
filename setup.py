@@ -30,6 +30,7 @@ setup(
         'mock>=1.0.1',
         'testfixtures>=4.1.2',
         'nose',
+        'entropy',
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',

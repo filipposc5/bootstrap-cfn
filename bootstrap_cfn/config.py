@@ -535,7 +535,7 @@ class ConfigParser(object):
             AutoMinorVersionUpgrade=False,
             VPCSecurityGroups=[GetAtt(database_sg, "GroupId")],
             DBSubnetGroupName=Ref(rds_subnet_group),
-            DependsOn=database_sg.title
+            DependsOn=["AttachGateway", database_sg.title],
         )
         resources.append(rds_instance)
 
@@ -738,7 +738,8 @@ class ConfigParser(object):
                     Enabled=True,
                     Timeout=120,
                 ),
-                Policies=elb_policies
+                Policies=elb_policies,
+                DependsOn=["AttachGateway"],
             )
             if "health_check" in elb:
                 load_balancer.HealthCheck = HealthCheck(**elb['health_check'])
@@ -1112,6 +1113,7 @@ class ConfigParser(object):
             LaunchConfigurationName=Ref(launch_config),
             HealthCheckGracePeriod=health_check_grace_period,
             HealthCheckType=health_check_type,
+            DependsOn=["AttachGateway"],
         )
         resources.append(scaling_group)
 

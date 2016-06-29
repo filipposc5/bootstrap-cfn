@@ -312,7 +312,7 @@ class TestConfigParser(unittest.TestCase):
         db_subnet.SubnetIds = [Ref('SubnetA'), Ref('SubnetB'), Ref('SubnetC')]
         db_subnet.DBSubnetGroupDescription = 'VPC Subnets'
 
-        db_instance = rds.DBInstance('RDSInstance', DependsOn=db_sg.title)
+        db_instance = rds.DBInstance('RDSInstance', DependsOn=["AttachGateway", db_sg.title])
         db_instance.MultiAZ = False
         db_instance.MasterUsername = 'testuser'
         db_instance.MasterUserPassword = 'testpassword'
@@ -457,7 +457,8 @@ class TestConfigParser(unittest.TestCase):
                     PolicyType='SSLNegotiationPolicyType',
                     PolicyName='PinDownSSLNegotiationPolicy201505'
                 )
-            ]
+            ],
+            DependsOn=["AttachGateway"],
         )
 
         pt1 = PolicyType(
@@ -566,6 +567,7 @@ class TestConfigParser(unittest.TestCase):
                     PolicyName='PinDownSSLNegotiationPolicy201505'
                 )
             ],
+            DependsOn=["AttachGateway"],
         )
         known_load_balancer_resources = [lb, lb2]
         known_policy_type_resources = [pt1, pt2]
@@ -986,6 +988,7 @@ class TestConfigParser(unittest.TestCase):
                     PolicyName='PinDownSSLNegotiationPolicy201505'
                 )
             ],
+            DependsOn=["AttachGateway"],
         )
 
         Policydockerregistryservice = PolicyType(
@@ -1110,6 +1113,7 @@ class TestConfigParser(unittest.TestCase):
                     PolicyName='PinDownSSLNegotiationPolicy201505'
                 )
             ],
+            DependsOn=["AttachGateway"],
         )
 
         Policydockerregistryservice = PolicyType(
@@ -1213,6 +1217,7 @@ class TestConfigParser(unittest.TestCase):
                     PolicyName='PinDownSSLNegotiationPolicy201505'
                 )
             ],
+            DependsOn=["AttachGateway"],
         )
 
         DNSdevdockerregistryservice = RecordSetGroup(
@@ -1321,7 +1326,8 @@ class TestConfigParser(unittest.TestCase):
             LaunchConfigurationName=Ref("BaseHostLaunchConfig"),
             AvailabilityZones=GetAZs(""),
             HealthCheckGracePeriod=300,
-            HealthCheckType='EC2'
+            HealthCheckType='EC2',
+            DependsOn=["AttachGateway"],
         )
 
         BaseHostSG = SecurityGroup(

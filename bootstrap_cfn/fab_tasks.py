@@ -21,6 +21,7 @@ from bootstrap_cfn.elb import ELB
 from bootstrap_cfn.errors import BootstrapCfnError, CfnConfigError, CloudResourceNotFoundError, DNSRecordNotFoundError, ZoneIDNotFoundError
 from bootstrap_cfn.iam import IAM
 from bootstrap_cfn.r53 import R53
+from bootstrap_cfn.stacks import Etcd
 from bootstrap_cfn.utils import tail
 from bootstrap_cfn.vpc import VPC
 
@@ -33,6 +34,7 @@ env.setdefault('config')
 env.setdefault('stack_passwords')
 env.setdefault('blocking', True)
 env.setdefault('aws_region', 'eu-west-1')
+env.setdefault('etcd', False)
 
 # GLOBAL VARIABLES
 TIMEOUT = 3600
@@ -66,6 +68,17 @@ def aws(profile_name):
     boto3.setup_default_session(profile_name=env.aws,
                                 region_name=env.aws_region)
 
+@task
+def etcd(etcd_host):
+    """
+    Set the ETCD host
+
+    Set the ETCD host
+
+    Args:
+        etcd_host(string): The hostname for etcd url
+    """
+    env.etcd = etcd_host
 
 @task
 def environment(environment_name):
@@ -366,14 +379,22 @@ def get_stack_name(new=False):
 
         record_name = "stack.{0}.{1}".format(stack_tag, legacy_name)
         dns_name = "{}.{}".format(record_name, zone_name)
-        try:
-            stack_suffix = dns.resolver.query(dns_name, 'TXT')[0].to_text().replace('"', "")
-            logger.info("fab_tasks::get_stack_name: Found stack suffix '{}' "
-                        "for dns record '{}'... ".format(stack_suffix, dns_name))
+
+        if env.etcd:
+            etcd_conn = Etcd(env.etcd)
+            logger.info("fab_tasks::get_stack_name: Looking up backend=etcd record={} ...".format(dns_name))
+            stack_suffix = etcd_conn.lookup_record(dns_name, host=env.etcd)
             env.stack_name = "{0}-{1}".format(legacy_name, stack_suffix)
-            logger.info("fab_tasks::get_stack_name: Found stack name '{}'...".format(env.stack_name))
-        except dns.resolver.NXDOMAIN:
-            raise DNSRecordNotFoundError(zone_name)
+            logger.info("fab_tasks::get_stack_name: Found stack name backend=etcd record={} suffix={} stack_name='{}'...".format(dns_name, stack_suffix, env.stack_name))
+        else:
+            try:
+                stack_suffix = dns.resolver.query(dns_name, 'TXT')[0].to_text().replace('"', "")
+                logger.info("fab_tasks::get_stack_name: Found stack suffix backend=dns '{}' "
+                            "for dns record '{}'... ".format(stack_suffix, dns_name))
+                env.stack_name = "{0}-{1}".format(legacy_name, stack_suffix)
+                logger.info("fab_tasks::get_stack_name: Found stack name backend=dns '{}'...".format(env.stack_name))
+            except dns.resolver.NXDOMAIN:
+                raise DNSRecordNotFoundError(zone_name)
 
     return env.stack_name
 
@@ -409,21 +430,29 @@ def set_stack_name():
         raise CfnConfigError("No master_zone in yaml, unable to create/find DNS records for stack name")
     logger.info("fab_tasks::set_stack_name: Found master zone '{}' in config...".format(zone_name))
 
-    zone_id = r53_conn.get_hosted_zone_id(zone_name)
-    if not zone_id:
-        raise ZoneIDNotFoundError(zone_name)
-    logger.info("fab_tasks::set_stack_name: Found zone id '{}' "
-                "for zone name '{}'...".format(zone_id, zone_name))
-    record_name = "stack.{0}.{1}".format(stack_tag, legacy_name)
-
     stack_suffix = uuid.uuid4().__str__()[-8:]
+    record_name = "stack.{0}.{1}".format(stack_tag, legacy_name)
     record = "{0}.{1}".format(record_name, zone_name)
-    logger.info("fab_tasks::set_stack_name: "
-                "Creating stack suffix {} "
-                "for record '{}' "
-                "in zone id '{}'...".format(stack_suffix, record, zone_id))
-    # Let DNS update DNSServerError propogate
-    r53_conn.update_dns_record(zone_id, record, 'TXT', '"{0}"'.format(stack_suffix))
+
+    if env.etcd:
+        logger.info("fab_tasks::set_stack_name: backend=etcd updating record={} stack_suffix={} ..."
+                    .format(record, stack_suffix))
+        etcd_conn = Etcd(env.etcd)
+        etcd_conn.update_record(record, str(stack_suffix), host=env.etcd)
+
+    else:
+        zone_id = r53_conn.get_hosted_zone_id(zone_name)
+        if not zone_id:
+            raise ZoneIDNotFoundError(zone_name)
+        logger.info("fab_tasks::set_stack_name: Found zone id '{}' "
+                    "for zone name '{}'...".format(zone_id, zone_name))
+
+        logger.info("fab_tasks::set_stack_name: "
+                    "Creating stack suffix backend=dns {} "
+                    "for record '{}' "
+                    "in zone id '{}'...".format(stack_suffix, record, zone_id))
+        # Let DNS update DNSServerError propogate
+        r53_conn.update_dns_record(zone_id, record, 'TXT', '"{0}"'.format(stack_suffix))
     env.stack_name = "{0}-{1}".format(legacy_name, stack_suffix)
     return env.stack_name
 
